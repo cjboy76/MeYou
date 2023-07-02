@@ -1,3 +1,5 @@
+import { agoraClient, localStream } from "."
+
 const servers: RTCConfiguration = {
     iceServers: [
         {
@@ -9,13 +11,9 @@ const servers: RTCConfiguration = {
     ]
 }
 
-
-export async function createOffer(localStream: MediaStream) {
-    const peerConnection = new RTCPeerConnection(servers)
+async function createPeerConnection(memberId: string) {
     const remoteStream = new MediaStream()
-
-    const offer = await peerConnection.createOffer()
-    await peerConnection.setLocalDescription(offer)
+    const peerConnection = new RTCPeerConnection(servers)
 
     localStream.getTracks().forEach(track => {
         peerConnection.addTrack(track)
@@ -28,11 +26,28 @@ export async function createOffer(localStream: MediaStream) {
     }
 
     peerConnection.onicecandidate = event => {
-        if (event.candidate) console.log(event.candidate)
+        if (event.candidate) {
+            agoraClient.sendMessageToPeer({
+                text: JSON.stringify(event.candidate)
+            }, memberId)
+        }
     }
 
+    return { peerConnection, remoteStream }
+}
+
+
+export async function createAndSendOffer(memberId: string) {
+    const { peerConnection, remoteStream } = await createPeerConnection(memberId)
+
+    const offer = await peerConnection.createOffer()
+    await peerConnection.setLocalDescription(offer)
+
+    agoraClient.sendMessageToPeer({
+        text: JSON.stringify(offer)
+    }, memberId)
+
     return {
-        peerConnection,
         remoteStream
     }
 }

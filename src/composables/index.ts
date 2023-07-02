@@ -1,3 +1,3 @@
-export { createOffer } from "./createOffer"
-export { useAgora } from "./useAgora"
-export { useMediaDevices } from "./useMediaDevices"
+export { createAndSendOffer } from "./createOffer"
+export { useAgora, agoraClient, uid } from "./useAgora"
+export { useMediaDevices, localStream } from "./useMediaDevices"
