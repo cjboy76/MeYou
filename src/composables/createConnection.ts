@@ -11,8 +11,10 @@ const servers: RTCConfiguration = {
     ]
 }
 
+export let remoteStream: MediaStream
+
 async function createPeerConnection(memberId: string) {
-    const remoteStream = new MediaStream()
+    if (!remoteStream) remoteStream = new MediaStream()
     const peerConnection = new RTCPeerConnection(servers)
 
     localStream.getTracks().forEach(track => {
@@ -45,6 +47,23 @@ export async function createAndSendOffer(memberId: string) {
 
     agoraClient.sendMessageToPeer({
         text: JSON.stringify(offer)
+    }, memberId)
+
+    return {
+        remoteStream
+    }
+}
+
+export async function createAndSendAnswer(memberId: string, offer: RTCSessionDescriptionInit) {
+    const { peerConnection, remoteStream } = await createPeerConnection(memberId)
+
+    await peerConnection.setRemoteDescription(offer)
+
+    const answer = await peerConnection.createAnswer()
+    await peerConnection.setLocalDescription(answer)
+
+    agoraClient.sendMessageToPeer({
+        text: JSON.stringify(answer)
     }, memberId)
 
     return {

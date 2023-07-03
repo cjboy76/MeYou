@@ -1,33 +1,34 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue"
-import { useAgora, useMediaDevices, createAndSendOffer } from '../composables'
+import { useAgora, useMediaDevices, createAndSendOffer, createAndSendAnswer, remoteStream } from '../composables'
 
 const localCamera = ref<HTMLVideoElement | undefined>()
 const remoteCamera = ref<HTMLVideoElement | undefined>()
 
 onMounted(async () => {
     const localStream = await useMediaDevices()
-    localCamera.value!.srcObject = localStream
-
-
     const { agoraClient } = await useAgora()
+
     const channelId = 'main'
     const channel = agoraClient.createChannel(channelId)
     await channel.join()
 
-
     channel.on("MemberJoined", async (memberId: string) => {
-        const { remoteStream } = await createAndSendOffer(memberId)
+        await createAndSendOffer(memberId)
         remoteCamera.value!.srcObject = remoteStream
     })
 
-    agoraClient.on("MessageFromPeer", (message) => {
+    agoraClient.on("MessageFromPeer", async (message, memberId) => {
         // @ts-ignore
-        const offer = JSON.parse(message.text)
+        const { context } = JSON.parse(message.text)
 
-        console.log(offer)
+        if (context.type === 'offer') {
+            await createAndSendAnswer(memberId, context.offer)
+            remoteCamera.value!.srcObject = remoteStream
+        }
     })
 
+    localCamera.value!.srcObject = localStream
 })
 
 </script>
