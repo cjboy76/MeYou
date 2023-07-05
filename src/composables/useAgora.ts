@@ -1,12 +1,12 @@
 import { v4 as uuidv4 } from 'uuid';
 import AgoraRTM, { type RtmClient } from "agora-rtm-sdk"
 
-export let agoraClient: RtmClient
+export let agoraClient: RtmClient | undefined
 export let uid: string
 
 
 export async function useAgora() {
-    if (!agoraClient) {
+    if (agoraClient === undefined) {
         agoraClient = AgoraRTM.createInstance(import.meta.env.VITE_APP_ID)
         uid = uuidv4()
 
@@ -18,5 +18,6 @@ export async function useAgora() {
     return {
         uid,
         agoraClient,
+        dispose: () => agoraClient = undefined
     }
 }

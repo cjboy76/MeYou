@@ -12,24 +12,26 @@ const servers: RTCConfiguration = {
 }
 
 export let remoteStream: MediaStream
+export let peerConnection: RTCPeerConnection
 
 async function createPeerConnection(memberId: string) {
-    if (!remoteStream) remoteStream = new MediaStream()
-    const peerConnection = new RTCPeerConnection(servers)
+    remoteStream = new MediaStream()
+    peerConnection = new RTCPeerConnection(servers)
 
     localStream.getTracks().forEach(track => {
-        peerConnection.addTrack(track)
+        peerConnection.addTrack(track, localStream)
     })
 
     peerConnection.ontrack = event => {
-        event.streams[0].getTracks().forEach((track) => {
+        const stream = event.streams[0]
+        stream && stream.getTracks().forEach((track) => {
             remoteStream.addTrack(track)
         })
     }
 
     peerConnection.onicecandidate = event => {
         if (event.candidate) {
-            agoraClient.sendMessageToPeer({
+            agoraClient!.sendMessageToPeer({
                 text: JSON.stringify(event.candidate)
             }, memberId)
         }
@@ -38,35 +40,32 @@ async function createPeerConnection(memberId: string) {
     return { peerConnection, remoteStream }
 }
 
-
 export async function createAndSendOffer(memberId: string) {
-    const { peerConnection, remoteStream } = await createPeerConnection(memberId)
+    const { peerConnection } = await createPeerConnection(memberId)
 
     const offer = await peerConnection.createOffer()
     await peerConnection.setLocalDescription(offer)
-
-    agoraClient.sendMessageToPeer({
+    await agoraClient!.sendMessageToPeer({
         text: JSON.stringify(offer)
     }, memberId)
-
-    return {
-        remoteStream
-    }
 }
 
 export async function createAndSendAnswer(memberId: string, offer: RTCSessionDescriptionInit) {
-    const { peerConnection, remoteStream } = await createPeerConnection(memberId)
+    const { peerConnection } = await createPeerConnection(memberId)
 
     await peerConnection.setRemoteDescription(offer)
 
     const answer = await peerConnection.createAnswer()
     await peerConnection.setLocalDescription(answer)
 
-    agoraClient.sendMessageToPeer({
+    agoraClient!.sendMessageToPeer({
         text: JSON.stringify(answer)
     }, memberId)
+}
 
-    return {
-        remoteStream
+export async function appendAnswer(answer: RTCSessionDescriptionInit) {
+    if (!peerConnection.currentRemoteDescription) {
+        await peerConnection.setRemoteDescription(answer)
     }
+
 }

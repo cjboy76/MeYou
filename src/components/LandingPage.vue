@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue"
-import { useAgora, useMediaDevices, createAndSendOffer, createAndSendAnswer, remoteStream } from '../composables'
+import { useAgora, useMediaDevices, createAndSendOffer, createAndSendAnswer, remoteStream, appendAnswer, peerConnection } from '../composables'
 
 const localCamera = ref<HTMLVideoElement | undefined>()
 const remoteCamera = ref<HTMLVideoElement | undefined>()
@@ -15,27 +15,32 @@ onMounted(async () => {
 
     channel.on("MemberJoined", async (memberId: string) => {
         await createAndSendOffer(memberId)
-        remoteCamera.value!.srcObject = remoteStream
+
+        // remoteCamera.value!.srcObject = remoteStream
     })
 
     agoraClient.on("MessageFromPeer", async (message, memberId) => {
         // @ts-ignore
-        const { context } = JSON.parse(message.text)
-
+        const context = JSON.parse(message.text)
         if (context.type === 'offer') {
-            await createAndSendAnswer(memberId, context.offer)
-            remoteCamera.value!.srcObject = remoteStream
+            await createAndSendAnswer(memberId, context)
         }
-    })
+        if (context.type === 'answer') {
+            appendAnswer(context)
+        }
+        if (context.type === 'candidate' && peerConnection) {
+            peerConnection.addIceCandidate(context)
+        }
 
+        // remoteCamera.value!.srcObject = remoteStream
+    })
     localCamera.value!.srcObject = localStream
 })
 
 </script>
 
 <template>
-    <div>
-        <h1>Welcome to the homepage</h1>
+    <div class="container">
         <video class='video' ref="localCamera" autoplay playsinline></video>
         <video class='video' ref="remoteCamera" autoplay playsinline></video>
     </div>
@@ -48,5 +53,9 @@ onMounted(async () => {
     /* Safari and Chrome */
     -moz-transform: rotateY(180deg);
     /* Firefox */
+}
+
+.container {
+    display: flex;
 }
 </style>
