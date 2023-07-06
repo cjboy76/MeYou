@@ -1,12 +1,9 @@
 import { agoraClient, localStream } from "."
 
-const servers: RTCConfiguration = {
+const servers = {
     iceServers: [
         {
-            urls: [
-                "stun:stun1.l.google.com:19302",
-                "stun:stun2.l.google.com:19302",
-            ]
+            urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302']
         }
     ]
 }
@@ -24,7 +21,8 @@ async function createPeerConnection(memberId: string) {
 
     peerConnection.ontrack = event => {
         const stream = event.streams[0]
-        stream && stream.getTracks().forEach((track) => {
+
+        stream && stream.getTracks().forEach(track => {
             remoteStream.addTrack(track)
         })
     }
@@ -32,16 +30,16 @@ async function createPeerConnection(memberId: string) {
     peerConnection.onicecandidate = event => {
         if (event.candidate) {
             agoraClient!.sendMessageToPeer({
-                text: JSON.stringify(event.candidate)
+                text: JSON.stringify({ candidate: event.candidate, type: "icecandidate" })
             }, memberId)
         }
     }
 
-    return { peerConnection, remoteStream }
+    return { peerConnection }
 }
 
 export async function createAndSendOffer(memberId: string) {
-    const { peerConnection } = await createPeerConnection(memberId)
+    await createPeerConnection(memberId)
 
     const offer = await peerConnection.createOffer()
     await peerConnection.setLocalDescription(offer)
@@ -51,7 +49,7 @@ export async function createAndSendOffer(memberId: string) {
 }
 
 export async function createAndSendAnswer(memberId: string, offer: RTCSessionDescriptionInit) {
-    const { peerConnection } = await createPeerConnection(memberId)
+    await createPeerConnection(memberId)
 
     await peerConnection.setRemoteDescription(offer)
 
@@ -63,9 +61,9 @@ export async function createAndSendAnswer(memberId: string, offer: RTCSessionDes
     }, memberId)
 }
 
-export async function appendAnswer(answer: RTCSessionDescriptionInit) {
+export function appendAnswer(answer: RTCSessionDescriptionInit) {
     if (!peerConnection.currentRemoteDescription) {
-        await peerConnection.setRemoteDescription(answer)
+        peerConnection.setRemoteDescription(answer)
     }
 
 }

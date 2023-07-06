@@ -6,35 +6,34 @@ const localCamera = ref<HTMLVideoElement | undefined>()
 const remoteCamera = ref<HTMLVideoElement | undefined>()
 
 onMounted(async () => {
-    const localStream = await useMediaDevices()
+    localCamera.value!.srcObject = await useMediaDevices()
+
     const { agoraClient } = await useAgora()
 
     const channelId = 'main'
     const channel = agoraClient.createChannel(channelId)
     await channel.join()
 
-    channel.on("MemberJoined", async (memberId: string) => {
-        await createAndSendOffer(memberId)
-
-        // remoteCamera.value!.srcObject = remoteStream
+    channel.on("MemberJoined", (memberId: string) => {
+        createAndSendOffer(memberId)
+        remoteCamera.value!.srcObject = remoteStream
     })
 
     agoraClient.on("MessageFromPeer", async (message, memberId) => {
         // @ts-ignore
         const context = JSON.parse(message.text)
         if (context.type === 'offer') {
-            await createAndSendAnswer(memberId, context)
+            createAndSendAnswer(memberId, context)
         }
         if (context.type === 'answer') {
             appendAnswer(context)
         }
-        if (context.type === 'candidate' && peerConnection) {
-            peerConnection.addIceCandidate(context)
+        if (context.type === 'icecandidate') {
+            peerConnection.addIceCandidate(context.candidate)
         }
-
-        // remoteCamera.value!.srcObject = remoteStream
+        remoteCamera.value!.srcObject = remoteStream
     })
-    localCamera.value!.srcObject = localStream
+
 })
 
 </script>
