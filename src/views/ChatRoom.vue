@@ -43,7 +43,8 @@ onMounted(async () => {
 
 <template>
     <div class="container">
-        <video class='video' ref="localCamera" autoplay playsinline :class="{ smallFrame: remoteActive }"></video>
+        <video class='video' muted="true" ref="localCamera" autoplay playsinline
+            :class="{ smallFrame: remoteActive }"></video>
         <video class='video' ref="remoteCamera" autoplay playsinline :class="{ hide: !remoteActive }"></video>
     </div>
 </template>
