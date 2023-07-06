@@ -1,18 +1,19 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue"
 import { useAgora, useMediaDevices, createAndSendOffer, createAndSendAnswer, remoteStream, appendAnswer, peerConnection } from '../composables'
+import { useRoute } from "vue-router";
 
 const localCamera = ref<HTMLVideoElement | undefined>()
 const remoteCamera = ref<HTMLVideoElement | undefined>()
 const remoteActive = ref(false)
+const route = useRoute()
+const roomId = route.params.roomid
 
 onMounted(async () => {
     localCamera.value!.srcObject = await useMediaDevices()
 
     const { agoraClient } = await useAgora()
-
-    const channelId = 'main'
-    const channel = agoraClient.createChannel(channelId)
+    const channel = agoraClient.createChannel(roomId as string)
     await channel.join()
 
     channel.on("MemberJoined", (memberId: string) => {
@@ -47,7 +48,7 @@ onMounted(async () => {
     </div>
 </template>
 
-<style>
+<style scoped>
 .video {
     background-color: black;
     width: 100%;
