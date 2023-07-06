@@ -4,6 +4,7 @@ import { useAgora, useMediaDevices, createAndSendOffer, createAndSendAnswer, rem
 
 const localCamera = ref<HTMLVideoElement | undefined>()
 const remoteCamera = ref<HTMLVideoElement | undefined>()
+const remoteActive = ref(false)
 
 onMounted(async () => {
     localCamera.value!.srcObject = await useMediaDevices()
@@ -32,6 +33,7 @@ onMounted(async () => {
             peerConnection.addIceCandidate(context.candidate)
         }
         remoteCamera.value!.srcObject = remoteStream
+        remoteActive.value = true
     })
 
 })
@@ -40,13 +42,17 @@ onMounted(async () => {
 
 <template>
     <div class="container">
-        <video class='video' ref="localCamera" autoplay playsinline></video>
-        <video class='video' ref="remoteCamera" autoplay playsinline></video>
+        <video class='video' ref="localCamera" autoplay playsinline :class="{ smallFrame: remoteActive }"></video>
+        <video class='video' ref="remoteCamera" autoplay playsinline :class="{ hide: !remoteActive }"></video>
     </div>
 </template>
 
 <style>
 .video {
+    background-color: black;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
     transform: rotateY(180deg);
     -webkit-transform: rotateY(180deg);
     /* Safari and Chrome */
@@ -54,7 +60,25 @@ onMounted(async () => {
     /* Firefox */
 }
 
+.hide {
+    display: none;
+}
+
+.smallFrame {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    height: 170px;
+    width: 300px;
+    border-radius: 5px;
+    border: 2px solid #b366f9;
+    -webkit-box-shadow: 3px 3px 15px -1px rgba(0, 0, 0, 0.77);
+    box-shadow: 3px 3px 15px -1px rgba(0, 0, 0, 0.77);
+    z-index: 999;
+}
+
 .container {
-    display: flex;
+    height: 100vh;
+    overflow: hidden;
 }
 </style>
