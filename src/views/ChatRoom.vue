@@ -1,24 +1,31 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue"
+import { ref, onMounted, onUnmounted } from "vue"
 import { useAgora, useMediaDevices, createAndSendOffer, createAndSendAnswer, remoteStream, appendAnswer, peerConnection } from '../composables'
 import { useRoute } from "vue-router";
+import type { RtmChannel, RtmClient } from "agora-rtm-sdk";
 
 const localCamera = ref<HTMLVideoElement | undefined>()
 const remoteCamera = ref<HTMLVideoElement | undefined>()
 const remoteActive = ref(false)
 const route = useRoute()
 const roomId = route.params.roomid
+let channel: RtmChannel
+let client: RtmClient
 
 onMounted(async () => {
     localCamera.value!.srcObject = await useMediaDevices()
 
     const { agoraClient } = await useAgora()
-    const channel = agoraClient.createChannel(roomId as string)
+    client = agoraClient
+    channel = agoraClient.createChannel(roomId as string)
     await channel.join()
 
     channel.on("MemberJoined", (memberId: string) => {
         createAndSendOffer(memberId)
         remoteCamera.value!.srcObject = remoteStream
+    })
+    channel.on('MemberLeft', () => {
+        remoteActive.value = false
     })
 
     agoraClient.on("MessageFromPeer", async (message, memberId) => {
@@ -37,6 +44,17 @@ onMounted(async () => {
         remoteActive.value = true
     })
 
+    window.addEventListener('beforeunload', async () => {
+        await channel.leave()
+        await agoraClient.logout()
+    })
+})
+
+onUnmounted(() => {
+    window.removeEventListener('beforeunload', async () => {
+        await channel.leave()
+        await client.logout()
+    })
 })
 
 </script>
@@ -77,6 +95,7 @@ onMounted(async () => {
     -webkit-box-shadow: 3px 3px 15px -1px rgba(0, 0, 0, 0.77);
     box-shadow: 3px 3px 15px -1px rgba(0, 0, 0, 0.77);
     z-index: 999;
+    transition: all linear 0.3s;
 }
 
 .container {
