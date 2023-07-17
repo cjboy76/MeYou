@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { toast } from 'vue-sonner'
 import LandingPage from '@/components/LandingPage.vue';
 import SharePage from '@/components/SharePage.vue';
+import { create } from 'domain';
 
 const router = useRouter()
 
@@ -14,7 +16,8 @@ const activeComponent = computed(() => {
 })
 
 function createRoomNumber() {
-    roomNumber.value = '1234'
+    const uid = Math.floor(Math.random() * Date.now()).toString(16)
+    roomNumber.value = uid
 }
 
 function nextHandler() {
@@ -26,34 +29,35 @@ function nextHandler() {
     }
     createPage.value = true
 }
+
+function shareHandler() {
+    const shareData = {
+        url: 'https://pjchender.blogspot.com',
+        title: 'MeYou | Video calling with friends.',
+    }
+    if (navigator.share) {
+        navigator.share(shareData);
+    } else {
+        navigator.clipboard.writeText(shareData.url)
+        toast("Copied !!")
+    }
+}
 </script>
 
 <template>
-    <div class="md:container relative mx-auto w-full h-full grid place-items-center">
+    <div class="p-8 md:container relative mx-auto w-full h-full grid place-items-center">
         <Transition name="fade" mode="out-in">
-            <component :is="activeComponent" :roomNumber="roomNumber" @create="createRoomNumber"></component>
+            <component :is="activeComponent" :roomNumber="roomNumber" @create="createRoomNumber" @share="shareHandler">
+            </component>
         </Transition>
-        <button class="fixed-bottom-right font-light disabled:opacity-50" :class="{ 'cool-link': !createPage }"
-            @click="nextHandler" :disabled="createPage && !roomNumber">
+        <button v-show="!createPage" class="fixed-bottom-right cool-link relative font-light disabled:opacity-50"
+            @click="nextHandler">
             Next
+        </button>
+        <button v-show="createPage" class="fixed-bottom-right font-light relative disabled:opacity-50"
+            :class="{ 'cool-link': roomNumber }" @click="nextHandler" :disabled="!roomNumber">
+            Enter
         </button>
 
     </div>
 </template>
-
-<style scoped>
-.fade-enter-active,
-.fade-leave-active {
-    transition: transform 0.2s ease-out;
-}
-
-.fade-enter-from {
-    transform: translateX(100%);
-}
-
-.fade-leave-to {
-    /* opacity: 0; */
-    transform: translateX(-100%);
-}
-</style>
-

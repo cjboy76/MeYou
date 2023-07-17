@@ -18,6 +18,9 @@
 }
 
 .cool-link::after {
+    position: absolute;
+    left: 0;
+    bottom: -2px;
     content: '';
     display: block;
     width: 0;
@@ -28,4 +31,27 @@
 
 .cool-link:hover::after {
     width: 100%;
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.25s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+.scale-enter-active,
+.scale-leave-active {
+    transition: transform 0.2s ease;
+}
+
+.scale-enter-from {
+    transform: scale(0.8);
+}
+
+.scale-leave-to {
+    transform: scale(1);
 }
