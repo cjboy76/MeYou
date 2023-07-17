@@ -31,7 +31,7 @@ function nextHandler() {
 <template>
     <div class="md:container relative mx-auto w-full h-full grid place-items-center">
         <Transition name="fade" mode="out-in">
-            <component :is="activeComponent" @create="createRoomNumber"></component>
+            <component :is="activeComponent" :roomNumber="roomNumber" @create="createRoomNumber"></component>
         </Transition>
         <button class="fixed-bottom-right font-light disabled:opacity-50" :class="{ 'cool-link': !createPage }"
             @click="nextHandler" :disabled="createPage && !roomNumber">
