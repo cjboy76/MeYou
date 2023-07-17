@@ -15,9 +15,5 @@ export async function useAgora() {
         })
     }
 
-    return {
-        uid,
-        agoraClient,
-        dispose: () => agoraClient = undefined
-    }
+    return agoraClient
 }
