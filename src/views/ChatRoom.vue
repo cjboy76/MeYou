@@ -98,7 +98,7 @@ function toggleVoice() {
 </script>
 
 <template>
-    <div class="overflow-hidden h-screen">
+    <div class="overflow-hidden h-screen bg-black">
         <video class='video' muted="true" ref="localCamera" autoplay playsinline
             :class="{ smallFrame: remoteActive }"></video>
         <video class='video' ref="remoteCamera" autoplay playsinline :class="{ 'hidden': !remoteActive }"></video>
