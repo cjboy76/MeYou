@@ -12,9 +12,9 @@ const roomId = route.params.roomid
 let channel: RtmChannel
 let client: RtmClient
 
-async function agoraDispose(){
-    if(channel) await channel.leave()
-    if(client) await client.logout()
+async function agoraDispose() {
+    if (channel) await channel.leave()
+    if (client) await client.logout()
 }
 
 onMounted(async () => {
@@ -60,10 +60,10 @@ onUnmounted(() => {
 </script>
 
 <template>
-    <div class="container">
+    <div class="custom-container">
         <video class='video' muted="true" ref="localCamera" autoplay playsinline
             :class="{ smallFrame: remoteActive }"></video>
-        <video class='video' ref="remoteCamera" autoplay playsinline :class="{ hide: !remoteActive }"></video>
+        <video class='video' ref="remoteCamera" autoplay playsinline :class="{ 'hidden': !remoteActive }"></video>
     </div>
 </template>
 
@@ -84,12 +84,18 @@ onUnmounted(() => {
 .smallFrame {
     transform: translateY(20px) translateX(20px) rotateY(180deg);
     height: 170px;
-    width: 300px;
+    width: 120px;
     z-index: 999;
     transition: all 0.5s;
 }
 
-.container {
+@media screen and (min-width: 650px) {
+    .smallFrame {
+        width: 300px;
+    }
+}
+
+.custom-container {
     height: 100vh;
     overflow: hidden;
 }

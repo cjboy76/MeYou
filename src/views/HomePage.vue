@@ -4,7 +4,6 @@ import { useRouter } from 'vue-router';
 import { toast } from 'vue-sonner'
 import LandingPage from '@/components/LandingPage.vue';
 import SharePage from '@/components/SharePage.vue';
-import { create } from 'domain';
 
 const router = useRouter()
 
@@ -21,18 +20,14 @@ function createRoomNumber() {
 }
 
 function nextHandler() {
-    if (createPage.value) {
-        const roomid = roomNumber.value
-        if (!roomid) return
-        router.replace({ name: 'chatroom', params: { roomid } })
-        return
-    }
-    createPage.value = true
+    const roomid = roomNumber.value
+    if (!roomid) return
+    router.replace({ name: 'chatroom', params: { roomid } })
 }
 
 function shareHandler() {
     const shareData = {
-        url: 'https://pjchender.blogspot.com',
+        url: 'http://127.0.0.1:5173/room/' + roomNumber.value,
         title: 'MeYou | Video calling with friends.',
     }
     if (navigator.share) {
@@ -51,7 +46,7 @@ function shareHandler() {
             </component>
         </Transition>
         <button v-show="!createPage" class="fixed-bottom-right cool-link relative font-light disabled:opacity-50"
-            @click="nextHandler">
+            @click="createPage = true">
             Next
         </button>
         <button v-show="createPage" class="fixed-bottom-right font-light relative disabled:opacity-50"

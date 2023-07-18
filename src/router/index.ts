@@ -18,9 +18,4 @@ const router = createRouter({
   ]
 })
 
-router.beforeEach((to, from) => {
-  if (from.name === undefined && to.name === 'chatroom') return '/'
-  return true
-})
-
 export default router
