@@ -15,6 +15,10 @@ const router = createRouter({
       name: 'chatroom',
       component: ChatRoom
     },
+    {
+      path: "/:pathMatch(.*)*",
+      redirect: '/'
+    }
   ]
 })
 
