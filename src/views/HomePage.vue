@@ -28,7 +28,7 @@ function nextHandler() {
 
 function shareHandler() {
     const shareData = {
-        url: 'http://127.0.0.1:5173/room/' + roomNumber.value,
+        url: 'http://localhost:4000/room/' + roomNumber.value,
         title: 'MeYou | Video calling with friends.',
     }
     if (navigator.share) {

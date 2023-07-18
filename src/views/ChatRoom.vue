@@ -2,14 +2,16 @@
 import { ref, onMounted, onUnmounted, watchEffect } from "vue"
 import { useUserMedia } from '@vueuse/core'
 import { useAgora, createAndSendOffer, createAndSendAnswer, remoteStream, appendAnswer, peerConnection } from '../composables'
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import ControllerBar from "@/components/ControllerBar.vue";
-import { GuidanceNoNoise, GuidanceNoVideo, GuidanceVideo, GuidanceVolume, GuidancePhone } from "@/icons";
 import type { RtmChannel, RtmClient } from "agora-rtm-sdk";
 
 const localCamera = ref<HTMLVideoElement | undefined>()
 const remoteCamera = ref<HTMLVideoElement | undefined>()
 const remoteActive = ref(false)
+const cameraActive = ref(true)
+const voiceActive = ref(true)
+const router = useRouter()
 const route = useRoute()
 const roomId = route.params.roomid
 const defaultConstraints = {
@@ -24,12 +26,7 @@ const defaultConstraints = {
 let channel: RtmChannel
 let client: RtmClient
 
-async function agoraDispose() {
-    if (channel) await channel.leave()
-    if (client) await client.logout()
-}
-
-const { stream: localStream, start: getUserMedia } = useUserMedia({ constraints: defaultConstraints })
+const { stream: localStream, start: getUserMedia, stop: stopUserMedia } = useUserMedia({ constraints: defaultConstraints })
 
 watchEffect(() => {
     if (localCamera.value) {
@@ -66,14 +63,35 @@ onMounted(async () => {
         remoteCamera.value!.srcObject = remoteStream
         remoteActive.value = true
     })
-
-    window.addEventListener('beforeunload', agoraDispose)
 })
 
 onUnmounted(() => {
-    window.removeEventListener('beforeunload', agoraDispose)
     agoraDispose()
 })
+
+async function agoraDispose() {
+    stopUserMedia()
+    if (channel) await channel.leave()
+    if (client) await client.logout()
+}
+
+function toggleCamera() {
+    if (!localStream.value) return
+    const videoTrack = localStream.value.getTracks().find(track => track.kind === 'video')
+    if (videoTrack) {
+        videoTrack.enabled = !videoTrack.enabled
+        cameraActive.value = !cameraActive.value
+    }
+}
+
+function toggleVoice() {
+    if (!localStream.value) return
+    const audioTrack = localStream.value.getTracks().find(track => track.kind === 'audio')
+    if (audioTrack) {
+        audioTrack.enabled = !audioTrack.enabled
+        voiceActive.value = !voiceActive.value
+    }
+}
 
 
 
@@ -85,7 +103,8 @@ onUnmounted(() => {
             :class="{ smallFrame: remoteActive }"></video>
         <video class='video' ref="remoteCamera" autoplay playsinline :class="{ 'hidden': !remoteActive }"></video>
 
-        <ControllerBar :camera-on="true" :voice-on="true" />
+        <ControllerBar :camera-on="cameraActive" :voice-on="voiceActive" @close="router.push({ name: 'home' })"
+            @toggle-camera="toggleCamera" @toggle-voice="toggleVoice" />
     </div>
 </template>
 
