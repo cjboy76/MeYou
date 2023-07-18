@@ -13,8 +13,8 @@ const route = useRoute()
 const roomId = route.params.roomid
 const defaultConstraints = {
     video: {
-        width: { min: 640, ideal: 1920, max: 1920 },
-        height: { min: 480, ideal: 1080, max: 1080 },
+        width: { min: 640, ideal: window.screen.width * window.devicePixelRatio, max: 1920 },
+        height: { min: 480, ideal: window.screen.height * window.devicePixelRatio, max: 1080 },
         facingMode: "user"
     },
     audio: true
@@ -23,15 +23,12 @@ const defaultConstraints = {
 let channel: RtmChannel
 let client: RtmClient
 
-
-
-
 async function agoraDispose() {
     if (channel) await channel.leave()
     if (client) await client.logout()
 }
 
-const { stream: localStream, start } = useUserMedia({ constraints: defaultConstraints })
+const { stream: localStream, start: getUserMedia } = useUserMedia({ constraints: defaultConstraints })
 
 watchEffect(() => {
     if (localCamera.value) {
@@ -40,7 +37,7 @@ watchEffect(() => {
 })
 
 onMounted(async () => {
-    start()
+    getUserMedia()
 
     client = await useAgora()
     channel = client.createChannel(roomId as string)
