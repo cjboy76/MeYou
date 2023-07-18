@@ -28,7 +28,7 @@ function nextHandler() {
 
 function shareHandler() {
     const shareData = {
-        url: `${window.location.origin}room/${roomNumber.value}`,
+        url: `${window.location.origin}/room/${roomNumber.value}`,
         title: 'MeYou | Video calling with friends.',
     }
     if (navigator.share) {
