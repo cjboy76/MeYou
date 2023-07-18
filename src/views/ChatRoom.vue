@@ -3,7 +3,8 @@ import { ref, onMounted, onUnmounted, watchEffect } from "vue"
 import { useUserMedia } from '@vueuse/core'
 import { useAgora, createAndSendOffer, createAndSendAnswer, remoteStream, appendAnswer, peerConnection } from '../composables'
 import { useRoute } from "vue-router";
-import { GuidanceNoNoise, GuidanceNoVideo, GuidanceVideo, GuidanceVolume } from "@/icons";
+import ControllerBar from "@/components/ControllerBar.vue";
+import { GuidanceNoNoise, GuidanceNoVideo, GuidanceVideo, GuidanceVolume, GuidancePhone } from "@/icons";
 import type { RtmChannel, RtmClient } from "agora-rtm-sdk";
 
 const localCamera = ref<HTMLVideoElement | undefined>()
@@ -79,17 +80,12 @@ onUnmounted(() => {
 </script>
 
 <template>
-    <div class="custom-container">
+    <div class="overflow-hidden h-screen">
         <video class='video' muted="true" ref="localCamera" autoplay playsinline
             :class="{ smallFrame: remoteActive }"></video>
         <video class='video' ref="remoteCamera" autoplay playsinline :class="{ 'hidden': !remoteActive }"></video>
 
-        <div class="controller">
-            <GuidanceNoNoise class="icon" />
-            <GuidanceNoVideo class="icon" />
-            <GuidanceVideo class="icon" />
-            <GuidanceVolume class="icon" />
-        </div>
+        <ControllerBar :camera-on="true" :voice-on="true" />
     </div>
 </template>
 
@@ -101,45 +97,21 @@ onUnmounted(() => {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    transition: all 0.5s;
+
 }
 
-.hide {
-    display: none;
-}
-
-.smallFrame {
+.video.smallFrame {
     transform: translateY(20px) translateX(20px) rotateY(180deg);
     height: 170px;
     width: 120px;
     z-index: 999;
-    transition: all 0.5s;
+
 }
 
 @media screen and (min-width: 650px) {
-    .smallFrame {
+    .video.smallFrame {
         width: 300px;
     }
-}
-
-.custom-container {
-    height: 100vh;
-    overflow: hidden;
-}
-
-.controller {
-    position: fixed;
-    bottom: 10lvh;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 100%;
-    height: auto;
-    background-color: #fff;
-    display: flex;
-    justify-content: space-around;
-}
-
-.controller .icon {
-    width: 2rem;
-    height: 2rem;
 }
 </style>
