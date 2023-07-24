@@ -7,7 +7,7 @@ export let uid: string
 
 export async function useAgora() {
     if (agoraClient === undefined) {
-        agoraClient = AgoraRTM.createInstance(import.meta.env.VITE_APP_ID)
+        agoraClient = AgoraRTM.createInstance(import.meta.env.VITE_AGORA_APP_ID)
         uid = uuidv4()
 
         await agoraClient.login({
