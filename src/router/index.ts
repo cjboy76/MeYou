@@ -2,6 +2,7 @@ import { createRouter, createWebHistory, type RouteLocationNormalized } from 'vu
 import ChatRoom from '@/views/ChatRoom.vue'
 import HomePage from '@/views/HomePage.vue'
 import { checkRoom } from '@/service'
+import { toast } from 'vue-sonner'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -26,7 +27,10 @@ const router = createRouter({
 
 async function checkRoomStatus({ params }: RouteLocationNormalized) {
   const status = await checkRoom(params.roomid as string)
-  if (!status || status.active) return '/'
+  if (!status || status.active) {
+    toast("Chatroom not available.")
+    return '/'
+  }
   return true
 }
 

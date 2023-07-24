@@ -24,11 +24,11 @@ export async function checkRoom(roomNumber: string, onError?: (error: unknown) =
         if (!docSnap.exists()) return null
 
         return docSnap.data()
-
     } catch (error) {
         if (onError) {
             onError(error)
         }
+        return null
     }
 }
 
