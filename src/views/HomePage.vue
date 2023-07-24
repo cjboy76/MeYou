@@ -25,7 +25,7 @@ async function createRoomNumber() {
 
 function nextHandler() {
     const roomid = roomNumber.value
-    toast.dismiss()
+    // toast.dismiss()
     if (!roomid) return
     router.replace({ name: 'chatroom', params: { roomid } })
 }

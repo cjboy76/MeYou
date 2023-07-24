@@ -1,4 +1,4 @@
-import { collection, addDoc, doc, updateDoc, deleteDoc } from "firebase/firestore";
+import { collection, addDoc, doc, updateDoc, deleteDoc, getDoc } from "firebase/firestore";
 import { db } from "./Firebase";
 
 const collectionName = "activeRoom"
@@ -6,9 +6,24 @@ const collectionName = "activeRoom"
 export async function createRoom(hostId: string, onError?: (error: unknown) => void) {
     try {
         return await addDoc(collection(db, collectionName), {
-            active: true,
+            active: false,
             hostId,
         });
+
+    } catch (error) {
+        if (onError) {
+            onError(error)
+        }
+    }
+}
+
+export async function checkRoom(roomNumber: string, onError?: (error: unknown) => void) {
+    try {
+        const docSnap = await getDoc(doc(db, collectionName, roomNumber));
+
+        if (!docSnap.exists()) return null
+
+        return docSnap.data()
 
     } catch (error) {
         if (onError) {
