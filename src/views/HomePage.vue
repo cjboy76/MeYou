@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router';
 import { toast } from 'vue-sonner'
 import LandingPage from '@/components/LandingPage.vue';
 import SharePage from '@/components/SharePage.vue';
+import { createRoom } from '@/service';
 
 const router = useRouter()
 
@@ -14,9 +15,12 @@ const activeComponent = computed(() => {
     return createPage.value ? SharePage : LandingPage
 })
 
-function createRoomNumber() {
+async function createRoomNumber() {
     const uid = Math.floor(Math.random() * Date.now()).toString(16)
-    roomNumber.value = uid
+    const res = await createRoom(uid)
+    if (res) {
+        roomNumber.value = res?.id
+    }
 }
 
 function nextHandler() {

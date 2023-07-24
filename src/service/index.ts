@@ -1,11 +1,11 @@
 import { collection, addDoc, doc, updateDoc, deleteDoc } from "firebase/firestore";
-import { db } from "./firebase";
+import { db } from "./Firebase";
 
 const collectionName = "activeRoom"
 
 export async function createRoom(hostId: string, onError?: (error: unknown) => void) {
     try {
-        await addDoc(collection(db, collectionName), {
+        return await addDoc(collection(db, collectionName), {
             active: true,
             hostId,
         });
