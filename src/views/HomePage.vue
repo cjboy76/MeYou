@@ -5,8 +5,10 @@ import { toast } from 'vue-sonner'
 import LandingPage from '@/components/LandingPage.vue';
 import SharePage from '@/components/SharePage.vue';
 import { createRoom } from '@/service';
+import { useUserStore } from '@/stores/useUserStore';
 
 const router = useRouter()
+const userStore = useUserStore()
 
 const roomNumber = ref('')
 const createPage = ref(false)
@@ -16,10 +18,10 @@ const activeComponent = computed(() => {
 })
 
 async function createRoomNumber() {
-    const uid = Math.floor(Math.random() * Date.now()).toString(16)
-    const res = await createRoom(uid)
+    const res = await createRoom(userStore.uid)
     if (res) {
         roomNumber.value = res?.id
+        userStore.isHost = true
     }
 }
 

@@ -6,7 +6,6 @@ const collectionName = "activeRoom"
 export async function createRoom(hostId: string, onError?: (error: unknown) => void) {
     try {
         return await addDoc(collection(db, collectionName), {
-            active: false,
             hostId,
         });
 
@@ -32,7 +31,7 @@ export async function checkRoom(roomNumber: string, onError?: (error: unknown) =
     }
 }
 
-export async function updateGuest(roomNumber: string, guestId: string, onError?: (error: unknown) => void) {
+export async function updateGuest(roomNumber: string, guestId = '', onError?: (error: unknown) => void) {
     try {
         const roomRef = doc(db, collectionName, roomNumber);
 

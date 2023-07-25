@@ -27,7 +27,7 @@ const router = createRouter({
 
 async function checkRoomStatus({ params }: RouteLocationNormalized) {
   const status = await checkRoom(params.roomid as string)
-  if (!status || status.active) {
+  if (!status || !!status.guestId) {
     toast("Chatroom not available.")
     return '/'
   }

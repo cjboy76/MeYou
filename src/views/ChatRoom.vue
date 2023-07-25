@@ -5,6 +5,10 @@ import { useAgora, createAndSendOffer, createAndSendAnswer, remoteStream, append
 import { useRoute, useRouter } from "vue-router";
 import ControllerBar from "@/components/ControllerBar.vue";
 import type { RtmChannel, RtmClient } from "agora-rtm-sdk";
+import { useUserStore } from '@/stores/useUserStore'
+import { updateGuest } from "@/service";
+
+const userStore = useUserStore()
 
 const localCamera = ref<HTMLVideoElement | undefined>()
 const remoteCamera = ref<HTMLVideoElement | undefined>()
@@ -37,6 +41,8 @@ watchEffect(() => {
 onMounted(async () => {
     getUserMedia()
 
+    if (!userStore.isHost) updateGuest(route.params.roomid as string, userStore.uid)
+
     client = await useAgora()
     channel = client.createChannel(roomId as string)
     await channel.join()
@@ -66,6 +72,7 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+    if (!userStore.isHost) updateGuest(route.params.roomid as string)
     agoraDispose()
 })
 
