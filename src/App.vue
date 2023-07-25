@@ -1,3 +1,22 @@
+<script setup lang="ts">
+import { Toaster } from 'vue-sonner';
+import { useUserStore } from './stores/useUserStore';
+import { onUnmounted } from 'vue';
+
+const userStore = useUserStore()
+
+onUnmounted(() => {
+  userStore.$dispose()
+})
+</script>
+
 <template>
-  <RouterView></RouterView>
+  <Toaster position="top-right" />
+  <main class='bg-gray-100 text-gray-700 w-screen h-screen'>
+    <router-view v-slot="{ Component }">
+      <transition name="fade">
+        <component :is="Component" />
+      </transition>
+    </router-view>
+  </main>
 </template>

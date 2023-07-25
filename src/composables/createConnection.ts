@@ -1,4 +1,4 @@
-import { agoraClient, localStream } from "."
+import { agoraClient } from "."
 
 const servers = {
     iceServers: [
@@ -11,7 +11,7 @@ const servers = {
 export let remoteStream: MediaStream
 export let peerConnection: RTCPeerConnection
 
-async function createPeerConnection(memberId: string) {
+async function createPeerConnection(memberId: string, localStream: MediaStream) {
     remoteStream = new MediaStream()
     peerConnection = new RTCPeerConnection(servers)
 
@@ -38,8 +38,8 @@ async function createPeerConnection(memberId: string) {
     return { peerConnection }
 }
 
-export async function createAndSendOffer(memberId: string) {
-    await createPeerConnection(memberId)
+export async function createAndSendOffer(memberId: string, localStream: MediaStream) {
+    await createPeerConnection(memberId, localStream)
 
     const offer = await peerConnection.createOffer()
     await peerConnection.setLocalDescription(offer)
@@ -48,8 +48,8 @@ export async function createAndSendOffer(memberId: string) {
     }, memberId)
 }
 
-export async function createAndSendAnswer(memberId: string, offer: RTCSessionDescriptionInit) {
-    await createPeerConnection(memberId)
+export async function createAndSendAnswer(memberId: string, offer: RTCSessionDescriptionInit, localStream: MediaStream) {
+    await createPeerConnection(memberId, localStream)
 
     await peerConnection.setRemoteDescription(offer)
 
