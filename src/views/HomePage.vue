@@ -26,10 +26,8 @@ async function createRoomNumber() {
 }
 
 function nextHandler() {
-    const roomid = roomNumber.value
-    // toast.dismiss()
-    if (!roomid) return
-    router.replace({ name: 'chatroom', params: { roomid } })
+    if (!roomNumber.value) return
+    router.replace({ name: 'chatroom', params: { roomid: roomNumber.value }, query: { isHost: String(userStore.isHost) } })
 }
 
 function shareHandler() {
