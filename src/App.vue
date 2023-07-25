@@ -1,5 +1,13 @@
 <script setup lang="ts">
 import { Toaster } from 'vue-sonner';
+import { useUserStore } from './stores/useUserStore';
+import { onUnmounted } from 'vue';
+
+const userStore = useUserStore()
+
+onUnmounted(() => {
+  userStore.$dispose()
+})
 </script>
 
 <template>
