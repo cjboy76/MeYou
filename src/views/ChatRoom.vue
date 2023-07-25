@@ -6,7 +6,7 @@ import { useRoute, useRouter } from "vue-router";
 import ControllerBar from "@/components/ControllerBar.vue";
 import type { RtmChannel, RtmClient } from "agora-rtm-sdk";
 import { useUserStore } from '@/stores/useUserStore'
-import { updateGuest } from "@/service";
+import { destroyRoom, updateGuest } from "@/service";
 
 const userStore = useUserStore()
 
@@ -72,7 +72,12 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
-    if (!userStore.isHost) updateGuest(route.params.roomid as string)
+    if (!userStore.isHost) {
+        updateGuest(route.params.roomid as string)
+    } else {
+        destroyRoom(route.params.roomid as string)
+    }
+
     agoraDispose()
 })
 
