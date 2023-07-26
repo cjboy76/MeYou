@@ -19,7 +19,7 @@
 
 @media screen and (max-width: 650px) {
     .fixed-bottom-right, .fixed-bottom-left{
-        bottom: 10lvh
+        bottom: 20lvh
     }
 }
 
