@@ -12,6 +12,7 @@ export let remoteStream: MediaStream
 export let peerConnection: RTCPeerConnection
 
 async function createPeerConnection(memberId: string, localStream: MediaStream) {
+    if (!localStream) return
     remoteStream = new MediaStream()
     peerConnection = new RTCPeerConnection(servers)
 
