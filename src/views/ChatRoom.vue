@@ -6,7 +6,7 @@ import { useRoute, useRouter } from "vue-router";
 import ControllerBar from "@/components/ControllerBar.vue";
 import type { RtmChannel, RtmClient } from "agora-rtm-sdk";
 import { useUserStore } from '@/stores/useUserStore'
-import { updateGuest } from "@/service";
+import { destroyRoom, updateGuest } from "@/service";
 
 const userStore = useUserStore()
 
@@ -17,7 +17,7 @@ const cameraActive = ref(true)
 const voiceActive = ref(true)
 const router = useRouter()
 const route = useRoute()
-const roomId = route.params.roomid
+const roomId = route.params.roomid as string
 const defaultConstraints = {
     video: {
         width: { min: 640, ideal: window.screen.width * window.devicePixelRatio, max: 1920 },
@@ -41,10 +41,10 @@ watchEffect(() => {
 onMounted(async () => {
     getUserMedia()
 
-    if (!userStore.isHost) updateGuest(route.params.roomid as string, userStore.uid)
+    if (!userStore.isHost) updateGuest(roomId, userStore.uid)
 
     client = await useAgora()
-    channel = client.createChannel(roomId as string)
+    channel = client.createChannel(roomId)
     await channel.join()
 
     channel.on("MemberJoined", (memberId: string) => {
@@ -72,7 +72,12 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
-    if (!userStore.isHost) updateGuest(route.params.roomid as string)
+    if (!userStore.isHost) {
+        updateGuest(roomId)
+    } else {
+        destroyRoom(roomId)
+    }
+
     agoraDispose()
 })
 

@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router';
 import { toast } from 'vue-sonner'
 import LandingPage from '@/components/LandingPage.vue';
 import SharePage from '@/components/SharePage.vue';
-import { createRoom } from '@/service';
+import { createRoom, destroyRoom } from '@/service';
 import { useUserStore } from '@/stores/useUserStore';
 
 const router = useRouter()
@@ -12,6 +12,8 @@ const userStore = useUserStore()
 
 const roomNumber = ref('')
 const createPage = ref(false)
+
+const roomSet = new Set<string>()
 
 const activeComponent = computed(() => {
     return createPage.value ? SharePage : LandingPage
@@ -22,14 +24,18 @@ async function createRoomNumber() {
     if (res) {
         roomNumber.value = res?.id
         userStore.isHost = true
+        roomSet.add(res.id)
     }
 }
 
 function nextHandler() {
-    const roomid = roomNumber.value
-    // toast.dismiss()
-    if (!roomid) return
-    router.replace({ name: 'chatroom', params: { roomid } })
+    if (!roomNumber.value) return
+    if (roomSet.size > 1) {
+        [...roomSet].forEach(n => {
+            if (n !== roomNumber.value) destroyRoom(n)
+        })
+    }
+    router.replace({ name: 'chatroom', params: { roomid: roomNumber.value }, query: { isHost: String(userStore.isHost) } })
 }
 
 function shareHandler() {
