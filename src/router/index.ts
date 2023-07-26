@@ -25,13 +25,14 @@ const router = createRouter({
   ]
 })
 
-async function checkRoomStatus({ params }: RouteLocationNormalized) {
+async function checkRoomStatus({ params, query }: RouteLocationNormalized) {
   const status = await checkRoom(params.roomid as string)
-  if (!status || !!status.guestId) {
-    toast("Chatroom not available.")
-    return '/'
-  }
-  return true
+  if (query.isHost === 'true') return true
+  if (!query.isHost && !status?.guestId) return true
+
+  toast('Chatroom not available')
+
+  return '/'
 }
 
 export default router
