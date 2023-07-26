@@ -17,6 +17,12 @@
     left: 2.5rem;
 }
 
+@media screen and (max-width: 650px) {
+    .fixed-bottom-right, .fixed-bottom-left{
+        bottom: 10lvh
+    }
+}
+
 .cool-link::after {
     position: absolute;
     left: 0;
