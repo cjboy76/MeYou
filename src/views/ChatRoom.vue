@@ -17,7 +17,7 @@ const cameraActive = ref(true)
 const voiceActive = ref(true)
 const router = useRouter()
 const route = useRoute()
-const roomId = route.params.roomid
+const roomId = route.params.roomid as string
 const defaultConstraints = {
     video: {
         width: { min: 640, ideal: window.screen.width * window.devicePixelRatio, max: 1920 },
@@ -41,10 +41,10 @@ watchEffect(() => {
 onMounted(async () => {
     getUserMedia()
 
-    if (!userStore.isHost) updateGuest(route.params.roomid as string, userStore.uid)
+    if (!userStore.isHost) updateGuest(roomId, userStore.uid)
 
     client = await useAgora()
-    channel = client.createChannel(roomId as string)
+    channel = client.createChannel(roomId)
     await channel.join()
 
     channel.on("MemberJoined", (memberId: string) => {
@@ -73,9 +73,9 @@ onMounted(async () => {
 
 onUnmounted(() => {
     if (!userStore.isHost) {
-        updateGuest(route.params.roomid as string)
+        updateGuest(roomId)
     } else {
-        destroyRoom(route.params.roomid as string)
+        destroyRoom(roomId)
     }
 
     agoraDispose()
