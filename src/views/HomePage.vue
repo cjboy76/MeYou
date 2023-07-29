@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, onBeforeUnmount, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { toast } from 'vue-sonner'
 import LandingPage from '@/components/LandingPage.vue';
@@ -19,22 +19,28 @@ const activeComponent = computed(() => {
     return createPage.value ? SharePage : LandingPage
 })
 
+onBeforeUnmount(() => {
+    roomDispose()
+})
+
 async function createRoomNumber() {
     const res = await createRoom(userStore.uid)
-    if (res) {
-        roomNumber.value = res?.id
-        userStore.isHost = true
-        roomSet.add(res.id)
-    }
+    if (!res) return undefined
+    roomNumber.value = res?.id
+    userStore.isHost = true
+    roomSet.add(res.id)
+    return res.id
+}
+
+function roomDispose() {
+    if (roomSet.size <= 1) return
+    [...roomSet].forEach(n => {
+        if (n !== roomNumber.value) destroyRoom(n)
+    })
 }
 
 function nextHandler() {
     if (!roomNumber.value) return
-    if (roomSet.size > 1) {
-        [...roomSet].forEach(n => {
-            if (n !== roomNumber.value) destroyRoom(n)
-        })
-    }
     router.replace({ name: 'chatroom', params: { roomid: roomNumber.value }, query: { isHost: String(userStore.isHost) } })
 }
 
