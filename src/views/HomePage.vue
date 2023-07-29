@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, onBeforeMount, onBeforeUnmount, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { toast } from 'vue-sonner'
 import LandingPage from '@/components/LandingPage.vue';
@@ -19,22 +19,41 @@ const activeComponent = computed(() => {
     return createPage.value ? SharePage : LandingPage
 })
 
+const isWebview = ref(false)
+
+onBeforeMount(() => {
+    isWebview.value = webviewDetect()
+})
+
+onBeforeUnmount(() => {
+    roomDispose()
+})
+
 async function createRoomNumber() {
     const res = await createRoom(userStore.uid)
-    if (res) {
-        roomNumber.value = res?.id
-        userStore.isHost = true
-        roomSet.add(res.id)
-    }
+    if (!res) return undefined
+    roomNumber.value = res?.id
+    userStore.isHost = true
+    roomSet.add(res.id)
+    return res.id
+}
+
+function roomDispose() {
+    if (roomSet.size <= 1) return
+    [...roomSet].forEach(n => {
+        if (n !== roomNumber.value) destroyRoom(n)
+    })
+}
+
+function webviewDetect() {
+    var useragent = navigator.userAgent;
+    var rules = ['WebView', '(iPhone|iPod|iPad)(?!.*Safari/)', 'Android.*(wv|.0.0.0)'];
+    var regex = new RegExp(`(${rules.join('|')})`, 'ig');
+    return Boolean(useragent.match(regex));
 }
 
 function nextHandler() {
     if (!roomNumber.value) return
-    if (roomSet.size > 1) {
-        [...roomSet].forEach(n => {
-            if (n !== roomNumber.value) destroyRoom(n)
-        })
-    }
     router.replace({ name: 'chatroom', params: { roomid: roomNumber.value }, query: { isHost: String(userStore.isHost) } })
 }
 
@@ -54,18 +73,22 @@ function shareHandler() {
 
 <template>
     <div class="p-8 md:container relative mx-auto w-full h-full grid place-items-center">
-        <Transition name="fade" mode="out-in">
-            <component :is="activeComponent" :roomNumber="roomNumber" @create="createRoomNumber" @share="shareHandler">
-            </component>
-        </Transition>
-        <button v-show="!createPage" class="fixed-bottom-right cool-link relative font-light disabled:opacity-50"
-            @click="createPage = true">
-            Next
-        </button>
-        <button v-show="createPage" class="fixed-bottom-right font-light relative disabled:opacity-50"
-            :class="{ 'cool-link': roomNumber }" @click="nextHandler" :disabled="!roomNumber">
-            Enter
-        </button>
-
+        <template v-if="isWebview">
+            Please open in default browser.
+        </template>
+        <template v-else>
+            <Transition name="fade" mode="out-in">
+                <component :is="activeComponent" :roomNumber="roomNumber" @create="createRoomNumber" @share="shareHandler">
+                </component>
+            </Transition>
+            <button v-show="!createPage" class="fixed-bottom-right cool-link relative font-light disabled:opacity-50"
+                @click="createPage = true">
+                Next
+            </button>
+            <button v-show="createPage" class="fixed-bottom-right font-light relative disabled:opacity-50"
+                :class="{ 'cool-link': roomNumber }" @click="nextHandler" :disabled="!roomNumber">
+                Enter
+            </button>
+        </template>
     </div>
 </template>
