@@ -46,10 +46,15 @@ function roomDispose() {
 }
 
 function webviewDetect() {
-    var useragent = navigator.userAgent;
-    var rules = ['WebView', '(iPhone|iPod|iPad)(?!.*Safari/)', 'Android.*(wv|.0.0.0)'];
-    var regex = new RegExp(`(${rules.join('|')})`, 'ig');
-    return Boolean(useragent.match(regex));
+    const userAgent = window.navigator.userAgent.toLowerCase()
+    const safari = /safari/.test(userAgent)
+    const ios = /iphone|ipod|ipad/.test(userAgent)
+
+    if (ios) {
+        return !safari
+    } else {
+        return userAgent.includes('wv')
+    }
 }
 
 function nextHandler() {
