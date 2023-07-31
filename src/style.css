@@ -62,3 +62,28 @@
 .scale-leave-to {
     transform: scale(1);
 }
+
+.video {
+    position: fixed;
+    transform: translateY(0) translateX(0) rotateY(180deg);
+    background-color: black;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: all 0.5s;
+
+}
+
+.video.smallFrame {
+    transform: translateY(20px) translateX(20px) rotateY(180deg);
+    height: 170px;
+    width: 120px;
+    z-index: 999;
+
+}
+
+@media screen and (min-width: 650px) {
+    .video.smallFrame {
+        width: 300px;
+    }
+}
