@@ -62,9 +62,8 @@ async function nextHandler() {
         toast('Error occurs, please try later.')
         return
     }
-    userStore.isHost = true
 
-    router.replace({ name: 'chatroom', params: { roomid: roomId }, query: { isHost: String(userStore.isHost) } })
+    router.replace({ name: 'chatroom', params: { roomid: roomId } })
 }
 
 // function shareHandler() {

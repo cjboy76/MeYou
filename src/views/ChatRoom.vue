@@ -1,20 +1,23 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watchEffect } from "vue"
+import { ref, onMounted, onUnmounted, watchEffect, reactive } from "vue"
 import { useUserMedia } from '@vueuse/core'
 import { useAgora, createAndSendOffer, createAndSendAnswer, remoteStream, appendAnswer, peerConnection } from '../composables'
 import { useRoute, useRouter } from "vue-router";
 import ControllerBar from "@/components/ControllerBar.vue";
 import type { RtmChannel, RtmClient } from "agora-rtm-sdk";
-import { useUserStore } from '@/stores/useUserStore'
-import { destroyRoom, updateGuest } from "@/service";
+import { checkRoom, destroyRoom, updateGuest } from "@/service";
+import { useUserStore } from "@/stores/useUserStore";
+import { toast } from "vue-sonner";
 
 const userStore = useUserStore()
 
 const localCamera = ref<HTMLVideoElement | undefined>()
 const remoteCamera = ref<HTMLVideoElement | undefined>()
-const remoteActive = ref(false)
-const cameraActive = ref(true)
-const voiceActive = ref(true)
+const streamState = reactive({
+    remote: false,
+    camera: true,
+    voice: true
+})
 const router = useRouter()
 const route = useRoute()
 const roomId = route.params.roomid as string
@@ -27,21 +30,32 @@ const defaultConstraints = {
     audio: true
 }
 
+let isHost = false
 let channel: RtmChannel
 let client: RtmClient
 
 const { stream: localStream, start: getUserMedia, stop: stopUserMedia } = useUserMedia({ constraints: defaultConstraints })
 
-watchEffect(() => {
+const cameraWatcher = watchEffect(() => {
     if (localCamera.value) {
         localCamera.value.srcObject = localStream.value!
     }
 })
 
 onMounted(async () => {
-    getUserMedia()
+    const roomStatus = await checkRoom(roomId)
 
-    if (!userStore.isHost) updateGuest(roomId, userStore.uid)
+    if (!roomStatus || roomStatus.guestId) {
+        router.push({ name: 'home' })
+        toast("chatroom not available")
+        return
+    }
+
+    isHost = roomStatus.hostId === userStore.uid
+
+    if (!isHost) updateGuest(roomId, userStore.uid)
+
+    getUserMedia()
 
     client = await useAgora()
     channel = client.createChannel(roomId)
@@ -52,7 +66,7 @@ onMounted(async () => {
         remoteCamera.value!.srcObject = remoteStream
     })
     channel.on('MemberLeft', () => {
-        remoteActive.value = false
+        streamState.remote = false
     })
     client.on("MessageFromPeer", async (message, memberId) => {
         // @ts-ignore
@@ -67,24 +81,22 @@ onMounted(async () => {
             peerConnection.addIceCandidate(context.candidate)
         }
         remoteCamera.value!.srcObject = remoteStream
-        remoteActive.value = true
+        streamState.remote = true
     })
 })
 
 onUnmounted(() => {
-    if (!userStore.isHost) {
-        updateGuest(roomId)
-    } else {
-        destroyRoom(roomId)
-    }
+    cameraWatcher && cameraWatcher()
+
+    isHost ? destroyRoom(roomId) : updateGuest(roomId)
 
     agoraDispose()
 })
 
 async function agoraDispose() {
     stopUserMedia()
-    if (channel) await channel.leave()
-    if (client) await client.logout()
+    channel && channel.leave()
+    client && client.logout()
 }
 
 function toggleCamera() {
@@ -92,7 +104,7 @@ function toggleCamera() {
     const videoTrack = localStream.value.getTracks().find(track => track.kind === 'video')
     if (videoTrack) {
         videoTrack.enabled = !videoTrack.enabled
-        cameraActive.value = !cameraActive.value
+        streamState.camera = !streamState.camera
     }
 }
 
@@ -101,7 +113,7 @@ function toggleVoice() {
     const audioTrack = localStream.value.getTracks().find(track => track.kind === 'audio')
     if (audioTrack) {
         audioTrack.enabled = !audioTrack.enabled
-        voiceActive.value = !voiceActive.value
+        streamState.voice = !streamState.voice
     }
 }
 
@@ -112,10 +124,10 @@ function toggleVoice() {
 <template>
     <div class="overflow-hidden h-screen bg-black">
         <video class='video' muted="true" ref="localCamera" autoplay playsinline
-            :class="{ smallFrame: remoteActive }"></video>
-        <video class='video' ref="remoteCamera" autoplay playsinline :class="{ 'hidden': !remoteActive }"></video>
+            :class="{ smallFrame: streamState.remote }"></video>
+        <video class='video' ref="remoteCamera" autoplay playsinline :class="{ 'hidden': !streamState.remote }"></video>
 
-        <ControllerBar :camera-on="cameraActive" :voice-on="voiceActive" @close="router.push({ name: 'home' })"
+        <ControllerBar :camera-on="streamState.camera" :voice-on="streamState.voice" @close="router.push({ name: 'home' })"
             @toggle-camera="toggleCamera" @toggle-voice="toggleVoice" />
     </div>
 </template>
