@@ -37,23 +37,24 @@ let client: RtmClient
 const { stream: localStream, start: getUserMedia, stop: stopUserMedia } = useUserMedia({ constraints: defaultConstraints })
 
 const localCameraWatcher = watchEffect(() => {
-    if (localCamera.value) {
-        localCamera.value.srcObject = localStream.value!
-    }
+    if (!localCamera.value) return
+
+    localCamera.value.srcObject = localStream.value!
 })
 
 const remoteCameraWatcher = watchEffect(() => {
-    if (remoteCamera.value && remoteStream.value) {
-        remoteCamera.value.srcObject = remoteStream.value
-        streamState.remote = true
-    }
+    if (!remoteCamera.value || !remoteStream.value) return
+
+    remoteCamera.value.srcObject = remoteStream.value
+    streamState.remote = true
 })
 
+let connectorId = ''
 onMounted(async () => {
     const roomStatus = await checkRoom(roomId)
 
     if (!roomStatus || roomStatus.guestId) {
-        router.push({ name: 'home' })
+        router.replace({ name: 'home' })
         toast("chatroom not available")
         return
     }
@@ -75,9 +76,11 @@ onMounted(async () => {
         createAndSendOffer(memberId, localStream.value!)
     })
     channel.on('MemberLeft', () => {
+        console.log('MemberLeft, via channel listener')
         streamState.remote = false
     })
     client.on("MessageFromPeer", async (message, memberId) => {
+        connectorId = memberId
         // @ts-ignore
         const context = JSON.parse(message.text)
         if (context.type === 'offer') {
@@ -89,20 +92,36 @@ onMounted(async () => {
         if (context.type === 'icecandidate') {
             peerConnection.addIceCandidate(context.candidate)
         }
+        if (context.type === 'disconnect') {
+            console.log('MemberLeft, via RTM')
+            streamState.remote = false
+        }
     })
 })
 
-onUnmounted(async () => {
-    localCameraWatcher && localCameraWatcher()
-    remoteCameraWatcher && remoteCameraWatcher()
-    isHost ? await destroyRoom(roomId) : await updateGuest(roomId)
-    await agoraDispose()
+onUnmounted(() => {
+    clientDispose()
 })
 
-async function agoraDispose() {
+window.addEventListener('beforeunload', clientDispose)
+
+async function clientDispose() {
     stopUserMedia()
-    channel && channel.leave()
-    client && client.logout()
+    localCameraWatcher && localCameraWatcher()
+    remoteCameraWatcher && remoteCameraWatcher()
+
+    isHost ? await destroyRoom(roomId) : await updateGuest(roomId)
+
+    if (channel) await channel.leave()
+    if (client) {
+        await client!.sendMessageToPeer({
+            text: JSON.stringify({
+                type: 'disconnect'
+            })
+        }, connectorId)
+
+        await client.logout()
+    }
 }
 
 function toggleCamera() {
@@ -122,9 +141,6 @@ function toggleVoice() {
         streamState.voice = !streamState.voice
     }
 }
-
-
-
 </script>
 
 <template>
