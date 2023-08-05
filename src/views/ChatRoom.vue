@@ -23,11 +23,15 @@ const route = useRoute()
 const roomId = route.params.roomid as string
 const defaultConstraints = {
     video: {
-        width: { min: 640, ideal: window.screen.width * window.devicePixelRatio, max: 1920 },
-        height: { min: 480, ideal: window.screen.height * window.devicePixelRatio, max: 1080 },
+        width: 1920,
+        height: 1080,
         facingMode: "user"
     },
-    audio: true
+    audio: {
+        echoCancellation: {
+            exact: true
+        }
+    }
 }
 
 let isHost = false
@@ -97,10 +101,13 @@ onMounted(async () => {
             streamState.remote = false
         }
     })
+    client.on('ConnectionStateChanged', (newState, reason) => {
+        console.log({ newState, reason })
+    })
 })
 
-onUnmounted(() => {
-    clientDispose()
+onUnmounted(async () => {
+    await clientDispose()
 })
 
 window.addEventListener('beforeunload', clientDispose)
@@ -110,18 +117,18 @@ async function clientDispose() {
     localCameraWatcher && localCameraWatcher()
     remoteCameraWatcher && remoteCameraWatcher()
 
-    isHost ? await destroyRoom(roomId) : await updateGuest(roomId)
-
-    if (channel) await channel.leave()
-    if (client) {
+    if (connectorId) {
         await client!.sendMessageToPeer({
             text: JSON.stringify({
                 type: 'disconnect'
             })
         }, connectorId)
-
-        await client.logout()
     }
+
+    isHost ? await destroyRoom(roomId) : await updateGuest(roomId)
+
+    await channel.leave()
+    await client.logout()
 }
 
 function toggleCamera() {
