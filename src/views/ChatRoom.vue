@@ -70,6 +70,7 @@ onMounted(async () => {
     getUserMedia()
 
     client = await useAgora()
+    client.removeAllListeners()
     await client.login({
         uid: userStore.uid
     })
