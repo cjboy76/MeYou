@@ -1,4 +1,5 @@
 import { agoraClient } from "."
+import { ref } from "vue"
 
 const servers = {
     iceServers: [
@@ -8,11 +9,11 @@ const servers = {
     ]
 }
 
-export let remoteStream: MediaStream
+export const remoteStream = ref<MediaStream>()
 export let peerConnection: RTCPeerConnection
 
 async function createPeerConnection(memberId: string, localStream: MediaStream) {
-    remoteStream = new MediaStream()
+    remoteStream.value = new MediaStream()
     peerConnection = new RTCPeerConnection(servers)
 
     localStream.getTracks().forEach(track => {
@@ -23,7 +24,7 @@ async function createPeerConnection(memberId: string, localStream: MediaStream) 
         const stream = event.streams[0]
 
         stream && stream.getTracks().forEach(track => {
-            remoteStream.addTrack(track)
+            remoteStream.value!.addTrack(track)
         })
     }
 

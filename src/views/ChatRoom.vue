@@ -36,9 +36,16 @@ let client: RtmClient
 
 const { stream: localStream, start: getUserMedia, stop: stopUserMedia } = useUserMedia({ constraints: defaultConstraints })
 
-const cameraWatcher = watchEffect(() => {
+const localCameraWatcher = watchEffect(() => {
     if (localCamera.value) {
         localCamera.value.srcObject = localStream.value!
+    }
+})
+
+const remoteCameraWatcher = watchEffect(() => {
+    if (remoteCamera.value && remoteStream.value) {
+        remoteCamera.value.srcObject = remoteStream.value
+        streamState.remote = true
     }
 })
 
@@ -58,12 +65,14 @@ onMounted(async () => {
     getUserMedia()
 
     client = await useAgora()
+    await client.login({
+        uid: userStore.uid
+    })
     channel = client.createChannel(roomId)
     await channel.join()
 
     channel.on("MemberJoined", (memberId: string) => {
         createAndSendOffer(memberId, localStream.value!)
-        remoteCamera.value!.srcObject = remoteStream
     })
     channel.on('MemberLeft', () => {
         streamState.remote = false
@@ -80,17 +89,14 @@ onMounted(async () => {
         if (context.type === 'icecandidate') {
             peerConnection.addIceCandidate(context.candidate)
         }
-        remoteCamera.value!.srcObject = remoteStream
-        streamState.remote = true
     })
 })
 
-onUnmounted(() => {
-    cameraWatcher && cameraWatcher()
-
-    isHost ? destroyRoom(roomId) : updateGuest(roomId)
-
-    agoraDispose()
+onUnmounted(async () => {
+    localCameraWatcher && localCameraWatcher()
+    remoteCameraWatcher && remoteCameraWatcher()
+    isHost ? await destroyRoom(roomId) : await updateGuest(roomId)
+    await agoraDispose()
 })
 
 async function agoraDispose() {
