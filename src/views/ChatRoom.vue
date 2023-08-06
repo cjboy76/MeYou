@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watchEffect, reactive } from "vue"
-import { useUserMedia } from '@vueuse/core'
+import { useUserMedia, useShare, useClipboard } from '@vueuse/core'
 import { useAgora, createAndSendOffer, createAndSendAnswer, remoteStream, appendAnswer, peerConnection } from '../composables'
 import { useRoute, useRouter } from "vue-router";
 import ControllerBar from "@/components/ControllerBar.vue";
@@ -176,6 +176,30 @@ async function signalSetup(uid: string) {
     }
 
 }
+
+
+const { share, isSupported: shareSupported } = useShare()
+const { copy, isSupported: copySupported } = useClipboard()
+
+async function shareHandler() {
+    if (shareSupported.value) {
+        await share({
+            title: 'MeYou',
+            text: 'Video Calling application',
+            url: location.href,
+        })
+        return
+    }
+
+    if (copySupported.value) {
+        try {
+            await copy(location.href)
+            toast('url copied!')
+        } catch {
+            toast('url copy failed.')
+        }
+    }
+}
 </script>
 
 <template>
@@ -185,6 +209,6 @@ async function signalSetup(uid: string) {
         <video class='video' ref="remoteCamera" autoplay playsinline :class="{ 'hidden': !streamState.remote }"></video>
 
         <ControllerBar :camera-on="streamState.camera" :voice-on="streamState.voice" @close="router.push({ name: 'home' })"
-            @toggle-camera="toggleCamera" @toggle-voice="toggleVoice" />
+            @share="shareHandler" @toggle-camera="toggleCamera" @toggle-voice="toggleVoice" />
     </div>
 </template>

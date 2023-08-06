@@ -1,15 +1,18 @@
 <script setup lang="ts">
-import { GuidanceNoNoise, GuidanceNoVideo, GuidanceVideo, GuidanceVolume, GuidancePhone } from "@/icons";
+import { GuidanceNoNoise, GuidanceNoVideo, GuidanceVideo, GuidanceVolume, GuidancePhone, GuidanceSend } from "@/icons";
 
 const emit = defineEmits<{
     (e: 'toggleCamera'): void
     (e: 'toggleVoice'): void
     (e: 'close'): void
+    (e: 'share'): void
 }>()
 const props = defineProps({
     cameraOn: Boolean,
     voiceOn: Boolean,
 })
+
+
 </script>
 
 <template>
@@ -27,6 +30,10 @@ const props = defineProps({
         <button class="mx-4 p-4 rounded-full text-white bg-slate-900 bg-opacity-50 hover:bg-opacity-80"
             @click="emit('close')">
             <GuidancePhone class="w-8 h-8" />
+        </button>
+        <button class="mx-4 p-4 rounded-full text-white bg-slate-900 bg-opacity-50 hover:bg-opacity-80"
+            @click="emit('share')">
+            <GuidanceSend class="w-8 h-8" />
         </button>
     </div>
 </template>
