@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watchEffect, reactive } from "vue"
+import { ref, onMounted, onBeforeUnmount, watchEffect, reactive } from "vue"
 import { useUserMedia } from '@vueuse/core'
 import { useAgora, createAndSendOffer, createAndSendAnswer, remoteStream, appendAnswer, peerConnection } from '../composables'
 import { useRoute, useRouter } from "vue-router";
@@ -34,9 +34,10 @@ const defaultConstraints = {
     }
 }
 
+const channel = ref<RtmChannel>()
+const client = ref<RtmClient>()
 let isHost = false
-let channel: RtmChannel
-let client: RtmClient
+let connectorId = ''
 
 const { stream: localStream, start: getUserMedia, stop: stopUserMedia } = useUserMedia({ constraints: defaultConstraints })
 
@@ -53,38 +54,26 @@ const remoteCameraWatcher = watchEffect(() => {
     streamState.remote = true
 })
 
-let connectorId = ''
-onMounted(async () => {
-    const roomStatus = await checkRoom(roomId)
+const channelWatcher = watchEffect(async () => {
+    if (!client.value || channel.value) return
 
-    if (!roomStatus || roomStatus.guestId) {
-        router.replace({ name: 'home' })
-        toast("chatroom not available")
-        return
-    }
+    channel.value = client.value.createChannel(roomId)
 
-    isHost = roomStatus.hostId === userStore.uid
+    await channel.value.join()
 
-    if (!isHost) updateGuest(roomId, userStore.uid)
-
-    getUserMedia()
-
-    client = await useAgora()
-    client.removeAllListeners()
-    await client.login({
-        uid: userStore.uid
-    })
-    channel = client.createChannel(roomId)
-    await channel.join()
-
-    channel.on("MemberJoined", (memberId: string) => {
+    channel.value.on("MemberJoined", (memberId: string) => {
         createAndSendOffer(memberId, localStream.value!)
     })
-    channel.on('MemberLeft', () => {
+    channel.value.on('MemberLeft', () => {
         console.log('MemberLeft, via channel listener')
         streamState.remote = false
     })
-    client.on("MessageFromPeer", async (message, memberId) => {
+})
+
+const clientWatcher = watchEffect(() => {
+    if (!client.value) return
+
+    client.value.on("MessageFromPeer", async (message, memberId) => {
         connectorId = memberId
         // @ts-ignore
         const context = JSON.parse(message.text)
@@ -102,12 +91,30 @@ onMounted(async () => {
             streamState.remote = false
         }
     })
-    client.on('ConnectionStateChanged', (newState, reason) => {
+    client.value.on('ConnectionStateChanged', (newState, reason) => {
         console.log({ newState, reason })
     })
 })
 
-onUnmounted(async () => {
+onMounted(async () => {
+    const roomStatus = await checkRoom(roomId)
+
+    if (!roomStatus || roomStatus.guestId) {
+        router.replace({ name: 'home' })
+        toast("chatroom not available")
+        return
+    }
+
+    isHost = roomStatus.hostId === userStore.uid
+
+    if (!isHost) updateGuest(roomId, userStore.uid)
+
+    getUserMedia()
+
+    client.value = await signalSetup(userStore.uid)
+})
+
+onBeforeUnmount(async () => {
     await clientDispose()
 })
 
@@ -115,11 +122,14 @@ window.addEventListener('beforeunload', clientDispose)
 
 async function clientDispose() {
     stopUserMedia()
+
     localCameraWatcher && localCameraWatcher()
     remoteCameraWatcher && remoteCameraWatcher()
+    channelWatcher && channelWatcher()
+    clientWatcher && clientWatcher()
 
     if (connectorId) {
-        await client!.sendMessageToPeer({
+        await client.value!.sendMessageToPeer({
             text: JSON.stringify({
                 type: 'disconnect'
             })
@@ -128,8 +138,8 @@ async function clientDispose() {
 
     isHost ? await destroyRoom(roomId) : await updateGuest(roomId)
 
-    await channel.leave()
-    await client.logout()
+    if (channel.value) await channel.value.leave()
+    if (client.value) await client.value.logout()
 }
 
 function toggleCamera() {
@@ -148,6 +158,23 @@ function toggleVoice() {
         audioTrack.enabled = !audioTrack.enabled
         streamState.voice = !streamState.voice
     }
+}
+
+async function signalSetup(uid: string) {
+    try {
+        const c = await useAgora()
+        c.removeAllListeners()
+        await c.login({
+            uid
+        })
+
+        return c
+    } catch (error) {
+        toast(error as string)
+
+        return undefined
+    }
+
 }
 </script>
 
