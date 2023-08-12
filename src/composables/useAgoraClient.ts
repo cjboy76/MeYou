@@ -1,5 +1,5 @@
 import AgoraRTM, { type RtmClient } from "agora-rtm-sdk"
-import { provide, ref } from "vue"
+import { ref } from "vue"
 
 export function useAgoraClient() {
     const agoraClient = ref<RtmClient>()
@@ -12,8 +12,6 @@ export function useAgoraClient() {
             await c.login({
                 uid
             })
-
-            provide('agoraClient', c)
 
             agoraClient.value = c
         } catch (error) {
