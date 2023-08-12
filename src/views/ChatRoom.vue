@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watchEffect, reactive, computed } from "vue"
 import { useUserMedia, useShare, useClipboard } from '@vueuse/core'
-import { useAgora, createAndSendOffer, createAndSendAnswer, remoteStream, appendAnswer, peerConnection } from '../composables'
+import { useAgoraClient, createAndSendOffer, createAndSendAnswer, remoteStream, appendAnswer, peerConnection } from '../composables'
 import { useRoute, useRouter } from "vue-router";
 import ControllerBar from "@/components/ControllerBar.vue";
 import type { RtmChannel, RtmClient } from "agora-rtm-sdk";
@@ -35,11 +35,11 @@ const defaultConstraints = {
 }
 
 const channel = ref<RtmChannel>()
-const client = ref<RtmClient>()
 let isHost = false
 let connectorId = ''
 
 const { stream: localStream, start: getUserMedia, stop: stopUserMedia } = useUserMedia({ constraints: defaultConstraints })
+const { agoraClient, agoraCreate, agoraDispose } = useAgoraClient(userStore.uid)
 
 const localRatio = computed(() => {
     if (!localStream.value) return 1
@@ -60,9 +60,9 @@ const remoteCameraWatcher = watchEffect(() => {
 })
 
 const channelWatcher = watchEffect(async () => {
-    if (!client.value || channel.value) return
+    if (!agoraClient.value || channel.value) return
 
-    channel.value = client.value.createChannel(roomId)
+    channel.value = agoraClient.value.createChannel(roomId)
 
     await channel.value.join()
 
@@ -76,9 +76,9 @@ const channelWatcher = watchEffect(async () => {
 })
 
 const clientWatcher = watchEffect(() => {
-    if (!client.value) return
+    if (!agoraClient.value) return
 
-    client.value.on("MessageFromPeer", async (message, memberId) => {
+    agoraClient.value.on("MessageFromPeer", async (message, memberId) => {
         connectorId = memberId
         // @ts-ignore
         const context = JSON.parse(message.text)
@@ -96,12 +96,13 @@ const clientWatcher = watchEffect(() => {
             streamState.remote = false
         }
     })
-    client.value.on('ConnectionStateChanged', (newState, reason) => {
+    agoraClient.value.on('ConnectionStateChanged', (newState, reason) => {
         console.log({ newState, reason })
     })
 })
 
 onMounted(async () => {
+    agoraCreate()
     const roomStatus = await checkRoom(roomId)
 
     if (!roomStatus || roomStatus.guestId) {
@@ -115,8 +116,6 @@ onMounted(async () => {
     if (!isHost) updateGuest(roomId, userStore.uid)
 
     getUserMedia()
-
-    client.value = await signalSetup(userStore.uid)
 })
 
 onBeforeUnmount(async () => {
@@ -135,7 +134,7 @@ async function clientDispose() {
     clientWatcher && clientWatcher()
 
     if (connectorId) {
-        await client.value!.sendMessageToPeer({
+        await agoraClient.value!.sendMessageToPeer({
             text: JSON.stringify({
                 type: 'disconnect'
             })
@@ -145,7 +144,7 @@ async function clientDispose() {
     isHost ? await destroyRoom(roomId) : await updateGuest(roomId)
 
     if (channel.value) await channel.value.leave()
-    if (client.value) await client.value.logout()
+    agoraDispose()
 }
 
 function toggleCamera() {
@@ -165,24 +164,6 @@ function toggleVoice() {
         streamState.voice = !streamState.voice
     }
 }
-
-async function signalSetup(uid: string) {
-    try {
-        const c = await useAgora()
-        c.removeAllListeners()
-        await c.login({
-            uid
-        })
-
-        return c
-    } catch (error) {
-        toast(error as string)
-
-        return undefined
-    }
-
-}
-
 
 const { share, isSupported: shareSupported } = useShare()
 const { copy, isSupported: copySupported } = useClipboard()
