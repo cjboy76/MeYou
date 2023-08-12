@@ -1,23 +1,25 @@
 <script setup lang="ts">
 import { Toaster } from 'vue-sonner';
 import { useUserStore } from './stores/useUserStore';
+import { useAgoraStore } from './stores/useAgoraStore';
 import { computed, onMounted, onUnmounted } from 'vue';
-import { useAgoraClient } from './composables/useAgoraClient';
 
 const userStore = useUserStore()
-const { agoraCreate, agoraDispose } = useAgoraClient()
+const agoraStore = useAgoraStore()
 
 const isMobile = computed(() => screen.width <= 760)
 
 const toastPosition = computed(() => isMobile.value ? 'top-center' : 'top-right')
 
 onMounted(() => {
-  agoraCreate(userStore.uid)
+  agoraStore.login(userStore.uid)
 })
 
 onUnmounted(() => {
   userStore.$dispose()
-  agoraDispose()
+
+  agoraStore.logout()
+  agoraStore.$dispose()
 })
 </script>
 

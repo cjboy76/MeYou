@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { useAgoraClient } from '@/composables/useAgoraClient'
+import { useAgoraStore } from './useAgoraStore'
 
 const servers = {
     iceServers: [
@@ -11,9 +11,9 @@ const servers = {
 }
 
 export const useConnectStore = defineStore('connect', () => {
-    const remoteStream = ref<MediaStream>(new MediaStream())
+    const remoteStream = ref<MediaStream>()
     const peerConnection = ref<RTCPeerConnection>(new RTCPeerConnection(servers))
-    const { agoraClient } = useAgoraClient()
+    const agoraStore = useAgoraStore()
 
     async function createPeerConnection(memberId: string, localStream: MediaStream) {
         remoteStream.value = new MediaStream()
@@ -32,8 +32,8 @@ export const useConnectStore = defineStore('connect', () => {
         }
 
         peerConnection.value.onicecandidate = event => {
-            if (agoraClient.value && event.candidate) {
-                agoraClient.value.sendMessageToPeer({
+            if (agoraStore.client && event.candidate) {
+                agoraStore.client.sendMessageToPeer({
                     text: JSON.stringify({ candidate: event.candidate, type: "icecandidate" })
                 }, memberId)
             }
@@ -47,8 +47,8 @@ export const useConnectStore = defineStore('connect', () => {
 
         const offer = await peerConnection.value.createOffer()
         await peerConnection.value.setLocalDescription(offer)
-        if (!agoraClient.value) throw new Error('agoraClient not exist.')
-        await agoraClient.value.sendMessageToPeer({
+        if (!agoraStore.client) throw new Error('agoraClient not exist.')
+        await agoraStore.client.sendMessageToPeer({
             text: JSON.stringify(offer)
         }, memberId)
     }
@@ -60,9 +60,9 @@ export const useConnectStore = defineStore('connect', () => {
 
         const answer = await peerConnection.value.createAnswer()
         await peerConnection.value.setLocalDescription(answer)
-        if (!agoraClient.value) throw new Error('agoraClient not exist.')
+        if (!agoraStore.client) throw new Error('agoraClient not exist.')
 
-        agoraClient.value.sendMessageToPeer({
+        agoraStore.client.sendMessageToPeer({
             text: JSON.stringify(answer)
         }, memberId)
     }

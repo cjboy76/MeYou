@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watchEffect, reactive, computed } from "vue"
 import { useUserMedia, useShare, useClipboard } from '@vueuse/core'
-// import { useAgoraClient } from "@/composables/useAgoraClient";
 import { useRoute, useRouter } from "vue-router";
 import ControllerBar from "@/components/ControllerBar.vue";
 import type { RtmChannel } from "agora-rtm-sdk";
@@ -9,9 +8,10 @@ import { checkRoom, destroyRoom, updateGuest } from "@/service";
 import { useUserStore } from "@/stores/useUserStore";
 import { useConnectStore } from "@/stores/useConnectStore";
 import { toast } from "vue-sonner";
-import { useAgoraClient } from "@/composables/useAgoraClient";
+import { useAgoraStore } from "@/stores/useAgoraStore";
 
 const userStore = useUserStore()
+const agoraStore = useAgoraStore()
 const connectStore = useConnectStore()
 
 const localCamera = ref<HTMLVideoElement | undefined>()
@@ -42,7 +42,6 @@ let isHost = false
 let connectorId = ''
 
 const { stream: localStream, start: getUserMedia, stop: stopUserMedia } = useUserMedia({ constraints: defaultConstraints })
-const { agoraClient } = useAgoraClient()
 
 const localRatio = computed(() => {
     if (!localStream.value) return 1
@@ -65,8 +64,9 @@ const remoteCameraWatcher = watchEffect(() => {
 })
 
 const channelWatcher = watchEffect(async () => {
-    if (!agoraClient.value || channel.value) return
-    channel.value = agoraClient.value.createChannel(roomId)
+    console.log("trigger channelWatcher ", agoraStore.client, channel.value)
+    if (!agoraStore.client || channel.value) return
+    channel.value = agoraStore.client.createChannel(roomId)
 
     await channel.value.join()
 
@@ -80,9 +80,9 @@ const channelWatcher = watchEffect(async () => {
 })
 
 const clientWatcher = watchEffect(() => {
-    if (!agoraClient.value) return
+    if (!agoraStore.client) return
 
-    agoraClient.value.on("MessageFromPeer", async (message, memberId) => {
+    agoraStore.client.on("MessageFromPeer", async (message, memberId) => {
         connectorId = memberId
         // @ts-ignore
         const context = JSON.parse(message.text)
@@ -100,16 +100,12 @@ const clientWatcher = watchEffect(() => {
             streamState.remote = false
         }
     })
-    agoraClient.value.on('ConnectionStateChanged', (newState, reason) => {
+    agoraStore.client.on('ConnectionStateChanged', (newState, reason) => {
         console.log({ newState, reason })
     })
 })
 
 onMounted(async () => {
-    console.log('before', agoraClient)
-    // await agoraCreate(userStore.uid)
-    console.log('after', agoraClient)
-
     const roomStatus = await checkRoom(roomId)
 
     if (!roomStatus || roomStatus.guestId) {
@@ -140,7 +136,7 @@ async function clientDispose() {
     clientWatcher && clientWatcher()
 
     if (connectorId) {
-        await agoraClient.value!.sendMessageToPeer({
+        await agoraStore.client!.sendMessageToPeer({
             text: JSON.stringify({
                 type: 'disconnect'
             })
