@@ -1,5 +1,5 @@
-# SeeMe
+# MeYou
 
 📱 Video Calling Application 
 
-> :warning: **SeeMe is still under development ** ⚠
+> :warning: **MeYou is still under development ** ⚠
