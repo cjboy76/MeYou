@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, watchEffect, reactive } from "vue"
+import { ref, onMounted, onBeforeUnmount, watchEffect, reactive, computed } from "vue"
 import { useUserMedia, useShare, useClipboard } from '@vueuse/core'
 import { useAgora, createAndSendOffer, createAndSendAnswer, remoteStream, appendAnswer, peerConnection } from '../composables'
 import { useRoute, useRouter } from "vue-router";
@@ -23,8 +23,8 @@ const route = useRoute()
 const roomId = route.params.roomid as string
 const defaultConstraints = {
     video: {
-        width: 1920,
-        height: 1080,
+        width: 600,
+        height: 800,
         facingMode: "user"
     },
     audio: {
@@ -41,6 +41,11 @@ let connectorId = ''
 
 const { stream: localStream, start: getUserMedia, stop: stopUserMedia } = useUserMedia({ constraints: defaultConstraints })
 
+const localRatio = computed(() => {
+    if (!localStream.value) return 1
+    return localStream.value.getVideoTracks()[0].getSettings().aspectRatio
+})
+
 const localCameraWatcher = watchEffect(() => {
     if (!localCamera.value) return
 
@@ -49,7 +54,7 @@ const localCameraWatcher = watchEffect(() => {
 
 const remoteCameraWatcher = watchEffect(() => {
     if (!remoteCamera.value || !remoteStream.value) return
-
+    console.log(remoteCamera.value, remoteStream.value)
     remoteCamera.value.srcObject = remoteStream.value
     streamState.remote = true
 })
@@ -121,6 +126,7 @@ onBeforeUnmount(async () => {
 window.addEventListener('beforeunload', clientDispose)
 
 async function clientDispose() {
+    remoteStream.value = undefined
     stopUserMedia()
 
     localCameraWatcher && localCameraWatcher()
@@ -204,11 +210,27 @@ async function shareHandler() {
 
 <template>
     <div class="overflow-hidden h-screen bg-black">
-        <video class='video' muted="true" ref="localCamera" autoplay playsinline
-            :class="{ smallFrame: streamState.remote }"></video>
+        <video class='video localVideo' muted="true" ref="localCamera" autoplay playsinline
+            :class="{ smallFrame: streamState.remote }" :style="{ '--aspect-ratio': localRatio }"></video>
         <video class='video' ref="remoteCamera" autoplay playsinline :class="{ 'hidden': !streamState.remote }"></video>
 
         <ControllerBar :camera-on="streamState.camera" :voice-on="streamState.voice" @close="router.push({ name: 'home' })"
             @share="shareHandler" @toggle-camera="toggleCamera" @toggle-voice="toggleVoice" />
     </div>
 </template>
+
+<style>
+/* .ratio {
+    padding-bottom: calc(100% / var(--aspect-ratio));
+} */
+
+@media (max-width: 768px) {
+    .localVideo {
+        width: 100%;
+        /* Full width in mobile view */
+        height: auto;
+        /* Allow height to adjust based on aspect ratio */
+        aspect-ratio: calc(1/var(--aspect-ratio));
+    }
+}
+</style>
