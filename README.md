@@ -1,5 +1,5 @@
 # SeeMe
 
-📱 Video-calling application based on WebRTC.
+📱 Video Calling Application 
 
 > :warning: **SeeMe is still under development ** ⚠
