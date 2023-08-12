@@ -1,20 +1,21 @@
 import AgoraRTM, { type RtmClient } from "agora-rtm-sdk"
 import { provide, ref } from "vue"
 
-export function useAgoraClient(uid: string) {
+export function useAgoraClient() {
     const agoraClient = ref<RtmClient>()
 
-    const create = async (onError?: (error: any) => void) => {
+    const create = async (uid: string, onError?: (error: any) => void) => {
         try {
-            agoraClient.value = AgoraRTM.createInstance(import.meta.env.VITE_AGORA_APP_ID)
-            agoraClient.value.removeAllListeners()
+            const c = AgoraRTM.createInstance(import.meta.env.VITE_AGORA_APP_ID)
+            c.removeAllListeners()
 
-            await agoraClient.value.login({
+            await c.login({
                 uid
             })
 
-            provide('agoraClient', agoraClient)
+            provide('agoraClient', c)
 
+            agoraClient.value = c
         } catch (error) {
             if (onError) onError(error)
         }

@@ -1,15 +1,18 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watchEffect, reactive, computed } from "vue"
 import { useUserMedia, useShare, useClipboard } from '@vueuse/core'
-import { useAgoraClient, createAndSendOffer, createAndSendAnswer, remoteStream, appendAnswer, peerConnection } from '../composables'
+// import { useAgoraClient } from "@/composables/useAgoraClient";
 import { useRoute, useRouter } from "vue-router";
 import ControllerBar from "@/components/ControllerBar.vue";
-import type { RtmChannel, RtmClient } from "agora-rtm-sdk";
+import type { RtmChannel } from "agora-rtm-sdk";
 import { checkRoom, destroyRoom, updateGuest } from "@/service";
 import { useUserStore } from "@/stores/useUserStore";
+import { useConnectStore } from "@/stores/useConnectStore";
 import { toast } from "vue-sonner";
+import { useAgoraClient } from "@/composables/useAgoraClient";
 
 const userStore = useUserStore()
+const connectStore = useConnectStore()
 
 const localCamera = ref<HTMLVideoElement | undefined>()
 const remoteCamera = ref<HTMLVideoElement | undefined>()
@@ -39,7 +42,7 @@ let isHost = false
 let connectorId = ''
 
 const { stream: localStream, start: getUserMedia, stop: stopUserMedia } = useUserMedia({ constraints: defaultConstraints })
-const { agoraClient, agoraCreate, agoraDispose } = useAgoraClient(userStore.uid)
+const { agoraClient } = useAgoraClient()
 
 const localRatio = computed(() => {
     if (!localStream.value) return 1
@@ -53,21 +56,22 @@ const localCameraWatcher = watchEffect(() => {
 })
 
 const remoteCameraWatcher = watchEffect(() => {
-    if (!remoteCamera.value || !remoteStream.value) return
-    console.log(remoteCamera.value, remoteStream.value)
-    remoteCamera.value.srcObject = remoteStream.value
+    if (!remoteCamera.value || !connectStore.remoteStream) return
+
+    console.log(remoteCamera.value, connectStore.remoteStream)
+
+    remoteCamera.value.srcObject = connectStore.remoteStream
     streamState.remote = true
 })
 
 const channelWatcher = watchEffect(async () => {
     if (!agoraClient.value || channel.value) return
-
     channel.value = agoraClient.value.createChannel(roomId)
 
     await channel.value.join()
 
     channel.value.on("MemberJoined", (memberId: string) => {
-        createAndSendOffer(memberId, localStream.value!)
+        connectStore.createAndSendOffer(memberId, localStream.value!)
     })
     channel.value.on('MemberLeft', () => {
         console.log('MemberLeft, via channel listener')
@@ -83,13 +87,13 @@ const clientWatcher = watchEffect(() => {
         // @ts-ignore
         const context = JSON.parse(message.text)
         if (context.type === 'offer') {
-            createAndSendAnswer(memberId, context, localStream.value!)
+            connectStore.createAndSendAnswer(memberId, context, localStream.value!)
         }
         if (context.type === 'answer') {
-            appendAnswer(context)
+            connectStore.appendAnswer(context)
         }
         if (context.type === 'icecandidate') {
-            peerConnection.addIceCandidate(context.candidate)
+            connectStore.peerConnection.addIceCandidate(context.candidate)
         }
         if (context.type === 'disconnect') {
             console.log('MemberLeft, via RTM')
@@ -102,7 +106,10 @@ const clientWatcher = watchEffect(() => {
 })
 
 onMounted(async () => {
-    agoraCreate()
+    console.log('before', agoraClient)
+    // await agoraCreate(userStore.uid)
+    console.log('after', agoraClient)
+
     const roomStatus = await checkRoom(roomId)
 
     if (!roomStatus || roomStatus.guestId) {
@@ -125,7 +132,6 @@ onBeforeUnmount(async () => {
 window.addEventListener('beforeunload', clientDispose)
 
 async function clientDispose() {
-    remoteStream.value = undefined
     stopUserMedia()
 
     localCameraWatcher && localCameraWatcher()
@@ -144,7 +150,6 @@ async function clientDispose() {
     isHost ? await destroyRoom(roomId) : await updateGuest(roomId)
 
     if (channel.value) await channel.value.leave()
-    agoraDispose()
 }
 
 function toggleCamera() {
