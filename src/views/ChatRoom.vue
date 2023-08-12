@@ -173,7 +173,7 @@ async function shareHandler() {
     if (shareSupported.value) {
         await share({
             title: 'MeYou',
-            text: 'Video Calling application',
+            text: 'Video Calling Application',
             url: location.href,
         })
         return
