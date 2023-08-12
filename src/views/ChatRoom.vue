@@ -57,14 +57,11 @@ const localCameraWatcher = watchEffect(() => {
 const remoteCameraWatcher = watchEffect(() => {
     if (!remoteCamera.value || !connectStore.remoteStream) return
 
-    console.log(remoteCamera.value, connectStore.remoteStream)
-
     remoteCamera.value.srcObject = connectStore.remoteStream
     streamState.remote = true
 })
 
 const channelWatcher = watchEffect(async () => {
-    console.log("trigger channelWatcher ", agoraStore.client, channel.value)
     if (!agoraStore.client || channel.value) return
     channel.value = agoraStore.client.createChannel(roomId)
 
@@ -146,6 +143,8 @@ async function clientDispose() {
     isHost ? await destroyRoom(roomId) : await updateGuest(roomId)
 
     if (channel.value) await channel.value.leave()
+    // connectStore.$dispose()
+    connectStore.$reset()
 }
 
 function toggleCamera() {

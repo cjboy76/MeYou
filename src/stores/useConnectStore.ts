@@ -17,7 +17,6 @@ export const useConnectStore = defineStore('connect', () => {
 
     async function createPeerConnection(memberId: string, localStream: MediaStream) {
         remoteStream.value = new MediaStream()
-        peerConnection.value = new RTCPeerConnection(servers)
 
         localStream.getTracks().forEach(track => {
             peerConnection.value.addTrack(track, localStream)
@@ -68,10 +67,13 @@ export const useConnectStore = defineStore('connect', () => {
     }
 
     function appendAnswer(answer: RTCSessionDescriptionInit) {
-        if (!peerConnection.value.currentRemoteDescription) {
-            peerConnection.value.setRemoteDescription(answer)
-        }
+        if (peerConnection.value.currentRemoteDescription) return
 
+        peerConnection.value.setRemoteDescription(answer)
+    }
+
+    function $reset() {
+        remoteStream.value = undefined
     }
 
     return {
@@ -79,6 +81,7 @@ export const useConnectStore = defineStore('connect', () => {
         peerConnection: peerConnection,
         createAndSendOffer,
         createAndSendAnswer,
-        appendAnswer
+        appendAnswer,
+        $reset
     }
 })
